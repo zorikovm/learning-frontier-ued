@@ -1,0 +1,81 @@
+{
+  "maxmc_success_correlation": 0.6195161628518207,
+  "mean_success_rate": 0.1497395932674408,
+  "next_visit": {
+    "by_prior_update_kind": {
+      "mutation_no_ppo": {
+        "count": 155,
+        "mean_subsequent_progress": -0.121324297425247,
+        "score_next_success_correlation": 0.3342423477144006,
+        "score_subsequent_progress_correlation": -0.703891845600868
+      },
+      "new_no_ppo": {
+        "count": 693,
+        "mean_subsequent_progress": -0.05343774761493932,
+        "score_next_success_correlation": 0.22953559209420762,
+        "score_subsequent_progress_correlation": -0.6898874355164629
+      },
+      "replay_with_ppo": {
+        "count": 125,
+        "mean_subsequent_progress": -0.42381039905548096,
+        "score_next_success_correlation": 0.20704349242151496,
+        "score_subsequent_progress_correlation": -0.7423029488352441
+      }
+    },
+    "mean_subsequent_progress": -0.11183342762590068,
+    "mean_visit_gap_updates": 90.76464542651593,
+    "num_next_visits": 973,
+    "score_next_success_correlation": 0.21613109831387123,
+    "score_subsequent_progress_correlation": -0.6593529561266931
+  },
+  "num_rollout_levels": 8000,
+  "observed_fraction": 1.0,
+  "pvl_success_correlation": 0.7483211254270995,
+  "sampler": {
+    "overall_mean_shortest_path": 8.973915224479558,
+    "overall_mean_wall_count": 23.80375,
+    "score_manhattan_correlation": -0.23503682073305285,
+    "score_shortest_path_correlation": -0.23988331835757046,
+    "score_success_ema_correlation": 0.7520578495796779,
+    "score_wall_count_correlation": 0.06776968116592876,
+    "size": 4000,
+    "solvable_fraction": 0.99675,
+    "top_decile_mean_shortest_path": 4.455,
+    "top_decile_mean_wall_count": 23.86,
+    "top_decile_solvable_fraction": 1.0,
+    "top_decile_success_ema": 0.6120012998580933
+  },
+  "score_quantiles": [
+    {
+      "bin": 0,
+      "count": 1600,
+      "score_mean": 0.8328441381454468,
+      "success_mean": 0.1366666704416275
+    },
+    {
+      "bin": 1,
+      "count": 1600,
+      "score_mean": 0.9099999070167542,
+      "success_mean": 0.0
+    },
+    {
+      "bin": 2,
+      "count": 1600,
+      "score_mean": 0.9099999070167542,
+      "success_mean": 0.0
+    },
+    {
+      "bin": 3,
+      "count": 1600,
+      "score_mean": 0.9266178607940674,
+      "success_mean": 0.0043750000186264515
+    },
+    {
+      "bin": 4,
+      "count": 1600,
+      "score_mean": 1.0298949480056763,
+      "success_mean": 0.6076562404632568
+    }
+  ],
+  "score_success_correlation": 0.5171984015940797
+}

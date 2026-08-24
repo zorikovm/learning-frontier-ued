@@ -1,0 +1,10 @@
+# Install a compatible JAX CUDA wheel separately before this file.
+numpy==1.26.4
+flax==0.8.5
+chex==0.1.86
+optax==0.2.3
+distrax==0.1.5
+gymnax==0.0.8
+orbax-checkpoint==0.5.3
+wandb==0.17.5
+pillow==12.3.0

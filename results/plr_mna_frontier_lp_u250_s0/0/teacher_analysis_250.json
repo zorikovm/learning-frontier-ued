@@ -1,0 +1,81 @@
+{
+  "maxmc_success_correlation": 0.5961530829067665,
+  "mean_success_rate": 0.21927084028720856,
+  "next_visit": {
+    "by_prior_update_kind": {
+      "mutation_no_ppo": {
+        "count": 0,
+        "mean_subsequent_progress": null,
+        "score_next_success_correlation": null,
+        "score_subsequent_progress_correlation": null
+      },
+      "new_no_ppo": {
+        "count": 1349,
+        "mean_subsequent_progress": 0.007801255726257548,
+        "score_next_success_correlation": 0.179663737078118,
+        "score_subsequent_progress_correlation": -0.6039781492533729
+      },
+      "replay_with_ppo": {
+        "count": 429,
+        "mean_subsequent_progress": 0.07516539032573188,
+        "score_next_success_correlation": 0.14316879338086652,
+        "score_subsequent_progress_correlation": -0.1142394727137707
+      }
+    },
+    "mean_subsequent_progress": 0.02405503173479213,
+    "mean_visit_gap_updates": 94.81046119235096,
+    "num_next_visits": 1778,
+    "score_next_success_correlation": 0.20522489626429719,
+    "score_subsequent_progress_correlation": -0.434916171181361
+  },
+  "num_rollout_levels": 8000,
+  "observed_fraction": 1.0,
+  "pvl_success_correlation": 0.7579464348603001,
+  "sampler": {
+    "overall_mean_shortest_path": 9.197608370702541,
+    "overall_mean_wall_count": 23.315773809523808,
+    "score_manhattan_correlation": -0.3291785552819851,
+    "score_shortest_path_correlation": -0.34866299110588134,
+    "score_success_ema_correlation": 0.7198476766258332,
+    "score_wall_count_correlation": -0.011297749405552261,
+    "size": 3360,
+    "solvable_fraction": 0.9955357142857143,
+    "top_decile_mean_shortest_path": 5.803571428571429,
+    "top_decile_mean_wall_count": 23.30654761904762,
+    "top_decile_solvable_fraction": 1.0,
+    "top_decile_success_ema": 0.5207864046096802
+  },
+  "score_quantiles": [
+    {
+      "bin": 0,
+      "count": 1600,
+      "score_mean": 0.0,
+      "success_mean": 0.0
+    },
+    {
+      "bin": 1,
+      "count": 1600,
+      "score_mean": 0.0,
+      "success_mean": 0.0
+    },
+    {
+      "bin": 2,
+      "count": 1600,
+      "score_mean": 2.9380288124084473,
+      "success_mean": 0.41979166865348816
+    },
+    {
+      "bin": 3,
+      "count": 1600,
+      "score_mean": 8.697125434875488,
+      "success_mean": 0.39519789814949036
+    },
+    {
+      "bin": 4,
+      "count": 1600,
+      "score_mean": 14.495200157165527,
+      "success_mean": 0.2813645899295807
+    }
+  ],
+  "score_success_correlation": 0.351367618095648
+}
