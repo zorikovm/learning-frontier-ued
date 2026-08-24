@@ -44,25 +44,30 @@ Replay и учет давности остаются такими же, как �
 
 ## Установка
 
+Нужен Python 3.11 или 3.12. Для воспроизведения лучше использовать 3.11. Python 3.14 с зафиксированным `jaxlib 0.4.30` несовместим.
+
 CPU:
 
 ```bash
-python -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
+python3.11 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip setuptools wheel
 .venv/bin/python -m pip install -r requirements-research-cpu.txt
 .venv/bin/python -m pip install -e . --no-deps
+.venv/bin/python -m pip check
 ```
 
 GPU с CUDA 12:
 
 ```bash
-python -m venv .venv
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install "jax[cuda12]==0.4.30"
+python3.11 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip setuptools wheel
 .venv/bin/python -m pip install -r requirements-research-gpu.txt
 .venv/bin/python -m pip install -e . --no-deps
-.venv/bin/python -c "import jax; print(jax.devices())"
+.venv/bin/python -m pip check
+.venv/bin/python -c "import sys, jax, numpy; print(sys.version); print(jax.__version__, numpy.__version__); print(jax.devices())"
 ```
+
+Если `.venv` уже создана через другую версию Python, ее нужно сначала удалить или переименовать, а затем создать заново. В последней строке для GPU должен быть `CudaDevice`, а не `CpuDevice`.
 
 ## Проверки
 
