@@ -1,50 +1,39 @@
 # Learning Frontier UED
 
-Эксперименты с teacher для JaxUED Maze. Student во всех запусках один и тот же: PPO + LSTM из исходного `examples/maze_plr.py`. Архитектура, параметры PPO и полный бюджет обучения не менялись.
+Исследование teacher для JaxUED Maze. Student во всех запусках зафиксирован: исходный PPO + LSTM из `examples/maze_plr.py`. Архитектура, параметры PPO и бюджет обучения не менялись.
 
-Полный бюджет одного запуска:
+Полный бюджет одного запуска: `30000 updates = 245760000 шагов среды`.
+
+Восемь public уровней SixteenRooms, Labyrinth и StandardMaze используются только для оценки. Они не участвуют в обучении, генерации, replay, мутациях или выборе метода.
+
+## Метод
+
+Для каждого уровня teacher хранит сглаженную частоту успеха `p`. Приоритет replay вычисляется так:
 
 ```text
-30000 updates = 245760000 шагов среды
+score = MNA * (4p(1-p) + 0.25 * max(p_new - p_old, 0))
 ```
 
-Восемь готовых уровней SixteenRooms, Labyrinth и StandardMaze используются только для оценки. Они не попадают в генерацию, replay, мутации или обучение teacher.
+MNA взят из DEGen и используется только на стороне teacher. PPO по-прежнему использует обычный GAE. Множитель `4p(1-p)` понижает приоритет крайних по сложности уровней, а небольшая положительная добавка сохраняет уровни, которые student только начал осваивать. Replay, ранжирование и staleness остаются такими же, как в PLR. Финальный вариант не использует мутации ACCEL.
 
-## Итоговый teacher
+## Итог
 
-Для каждого уровня хранится сглаженная частота успеха `p`. При повторном прохождении она обновляется с коэффициентом 0.3. Приоритет уровня равен
+Основной результат получен отдельной оценкой сохраненных checkpoint на восьми public уровнях, по 10 попыток на уровень.
 
-$$
-S = MNA(4p(1-p)+0.25max(p_{new}-p_{old},0)).
-$$
-
-MNA взят из DEGen и используется только на стороне teacher. Обычный GAE по-прежнему используется для PPO. Множитель `4p(1-p)` понижает приоритет слишком легких и слишком трудных уровней. Последний небольшой член не дает сразу исключить уровень, который student только начал решать.
-
-Replay и учет давности остаются такими же, как в PLR. Финальный вариант не использует мутации ACCEL: в коротких сравнениях они проиграли обычному PLR.
-
-## Что получилось
-
-На 250 updates проведено сравнение трех методов по seeds 0, 1, 2:
-
-| Метод | Доля решенных проверочных уровней |
-|---|---:|
-| PLR MaxMC | 0.2521 ± 0.0346 |
-| PLR MNA | 0.2615 ± 0.0191 |
-| MNA + граница обучения | **0.2865 ± 0.0377** |
-
-На 1000 updates пока есть только seed 0:
-
-| Метод | Public | Проверочная выборка |
+| Метод | Seeds | Solve rate, среднее ± std |
 |---|---:|---:|
-| PLR MaxMC | 0.0250 | 0.8469 |
-| PLR MNA | 0.0375 | 0.8406 |
-| MNA + граница обучения | 0.0250 | **0.8531** |
+| DR | 3 | 0.4417 ± 0.1377 |
+| PLR MaxMC | 3 | 0.3625 ± 0.1984 |
+| ACCEL MaxMC | 6 | 0.5125 ± 0.2158 |
+| MNA + граница обучения | 6 | **0.5500 ± 0.1670** |
 
-Это предварительный результат. Он показывает, что метод имеет смысл проверять на полном бюджете, но пока не доказывает превосходство над PLR и ACCEL. Полного запуска на 30000 updates здесь еще нет.
+Новый teacher дал самое высокое среднее и меньший разброс, чем ACCEL. Средняя парная разница по seeds 0–5 равна `+0.0375`, но ее 95% интервал `[-0.2953, 0.3703]` включает ноль. То есть результат лучше, но шести seeds пока мало для уверенного вывода о превосходстве над ACCEL.
+
+Подробные результаты по уровням и все ограничения находятся в [REPORT.md](REPORT.md), журнал всех проверенных гипотез — в [EXPERIMENTS.md](EXPERIMENTS.md).
 
 ## Установка
 
-Нужен Python 3.11 или 3.12. Для воспроизведения лучше использовать 3.11. Python 3.14 с зафиксированным `jaxlib 0.4.30` несовместим.
+Рекомендуется Python 3.11. Python 3.14 несовместим с зафиксированным `jaxlib 0.4.30`.
 
 CPU:
 
@@ -67,7 +56,7 @@ python3.11 -m venv .venv
 .venv/bin/python -c "import sys, jax, numpy; print(sys.version); print(jax.__version__, numpy.__version__); print(jax.devices())"
 ```
 
-Если `.venv` уже создана через другую версию Python, ее нужно сначала удалить или переименовать, а затем создать заново. В последней строке для GPU должен быть `CudaDevice`, а не `CpuDevice`.
+В последней строке GPU-установки должен быть `CudaDevice`, а не `CpuDevice`.
 
 ## Проверки
 
@@ -76,7 +65,7 @@ python3.11 -m venv .venv
 .venv/bin/python -m unittest tests.test_teacher_scores -v
 ```
 
-Первая команда сравнивает `ActorCritic`, GAE, PPO update и зафиксированные параметры с исходным коммитом JaxUED `0f8f128`.
+Первая команда сравнивает `ActorCritic`, GAE, PPO update и параметры student с исходным коммитом JaxUED `0f8f128`.
 
 ## Запуск baseline
 
@@ -96,13 +85,13 @@ CHECKPOINT_SAVE_INTERVAL=20 bash scripts/run_baseline.sh plr 0 30000
 CHECKPOINT_SAVE_INTERVAL=20 bash scripts/run_baseline.sh accel 0 30000
 ```
 
-## Запуск нового метода
+## Запуск метода
 
 ```bash
 CHECKPOINT_SAVE_INTERVAL=20 bash scripts/run_method.sh mna_frontier_lp025_plr 0 30000
-CHECKPOINT_SAVE_INTERVAL=20 bash scripts/run_method.sh mna_frontier_lp025_plr 1 30000
-CHECKPOINT_SAVE_INTERVAL=20 bash scripts/run_method.sh mna_frontier_lp025_plr 2 30000
 ```
+
+Seed задается вторым аргументом. Для итогового сравнения использовались seeds 0–5 для нового метода и ACCEL.
 
 ## Оценка checkpoint
 
@@ -110,24 +99,24 @@ CHECKPOINT_SAVE_INTERVAL=20 bash scripts/run_method.sh mna_frontier_lp025_plr 2 
 bash scripts/evaluate.sh checkpoints/<название_запуска>/<seed> -1
 ```
 
-Итоговые таблицы собираются командой
+Сводные таблицы пересчитываются командой:
 
 ```bash
 .venv/bin/python scripts/summarize_results.py
 ```
 
-## Файлы
+## Структура
 
 ```text
 examples/maze_plr.py          обучение PLR, ACCEL и новых teacher
 src/jaxued/teacher_scores.py  расчет MNA
 scripts/run_baseline.sh       запуск DR, PLR и ACCEL
-scripts/run_method.sh         запуск новых вариантов
+scripts/run_method.sh         запуск вариантов teacher
 scripts/evaluate.sh           отдельная оценка checkpoint
-scripts/analyze_teacher.py    анализ выбранных teacher уровней
-REPORT.md                     описание метода и выводы
-EXPERIMENTS.md                журнал всех проверенных гипотез
-results/                      настройки, метрики и диагностика запусков
+scripts/analyze_teacher.py    анализ выбранных уровней
+results/                      компактные настройки и метрики запусков
+REPORT.md                     итоговый отчет
+EXPERIMENTS.md                журнал экспериментов
 ```
 
-Исходный проект: [DramaCow/jaxued](https://github.com/DramaCow/jaxued), коммит `0f8f128`.
+Checkpoint и большие диагностические массивы намеренно не хранятся в Git. Исходный проект: [DramaCow/jaxued](https://github.com/DramaCow/jaxued), коммит `0f8f128`.

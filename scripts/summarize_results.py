@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aggregate the latest JSONL record from every local experiment."""
+"""Collect training and standalone checkpoint evaluation results."""
 
 import argparse
 import csv
@@ -47,6 +47,13 @@ def canonical_method(run_name):
     return METHOD_ALIASES.get(method, method)
 
 
+def fmt(values, digits=4):
+    if not values:
+        return "N/A"
+    mean, std = mean_std(values)
+    return f"{mean:.{digits}f} ± {std:.{digits}f}"
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--results-dir", type=Path, default=Path("results"))
@@ -60,6 +67,8 @@ def main():
         run_name = metrics_path.parents[1].name
         if run_name.startswith("smoke_"):
             continue
+        evaluation_path = metrics_path.with_name("evaluation.json")
+        evaluation = json.loads(evaluation_path.read_text()) if evaluation_path.exists() else {}
         method = canonical_method(run_name)
         seed = int(metrics_path.parent.name)
         row = {
@@ -70,9 +79,12 @@ def main():
             "num_env_steps": metric.get("num_env_steps"),
             "wall_clock_seconds": metric.get("wall_clock_block_seconds"),
             "solve_rate": metric.get("solve_rate/mean"),
+            "checkpoint_solve_rate": evaluation.get("solve_rate_mean"),
             "validation_solve_rate": metric.get("validation/solve_rate_mean"),
         }
         row.update({level: metric.get(f"solve_rate/{level}") for level in EVAL_LEVELS})
+        checkpoint_levels = evaluation.get("solve_rate_per_level", {})
+        row.update({f"checkpoint_{level}": checkpoint_levels.get(level) for level in EVAL_LEVELS})
         rows.append(row)
 
     output_csv = args.results_dir / "summary.csv"
@@ -86,8 +98,6 @@ def main():
     for row in rows:
         key = (row["method"], row["num_updates"], row["seed"])
         previous = unique.get(key)
-        # A diagnostic rerun can share method/budget/seed with an earlier
-        # smoke baseline. Prefer the row with fixed-validation evidence.
         if previous is None or (
             previous["validation_solve_rate"] is None
             and row["validation_solve_rate"] is not None
@@ -98,38 +108,56 @@ def main():
     for row in unique.values():
         groups.setdefault((row["method"], row["num_updates"]), []).append(row)
 
+    has_full = any(updates == 30000 for _, updates in groups)
+    intro = (
+        "Полные результаты на 30000 updates приведены вместе с короткими запусками, "
+        "которые использовались только для проверки гипотез."
+        if has_full
+        else "Доступны только короткие запуски для проверки гипотез."
+    )
     markdown = [
         "# Результаты",
         "",
-        "Короткие запуски использовались для проверки гипотез. Полных результатов на 30000 updates пока нет.",
+        intro,
         "",
-        "| Метод | Seeds | Updates | Public, среднее ± std | Проверочная выборка, среднее ± std |",
-        "|---|---:|---:|---:|---:|",
+        "| Метод | Seeds | Updates | Во время обучения | Отдельная оценка checkpoint | Проверочная выборка |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
     for (method, updates), method_rows in sorted(groups.items()):
-        solve = [r["solve_rate"] for r in method_rows if r["solve_rate"] is not None]
+        train = [r["solve_rate"] for r in method_rows if r["solve_rate"] is not None]
+        checkpoint = [r["checkpoint_solve_rate"] for r in method_rows if r["checkpoint_solve_rate"] is not None]
         validation = [r["validation_solve_rate"] for r in method_rows if r["validation_solve_rate"] is not None]
-        solve_mean, solve_std = mean_std(solve)
-        val_mean, val_std = mean_std(validation)
-        val_text = "N/A" if not validation else f"{val_mean:.4f} ± {val_std:.4f}"
         markdown.append(
-            f"| {method} | {len(method_rows)} | {updates} | "
-            f"{solve_mean:.4f} ± {solve_std:.4f} | {val_text} |"
+            f"| {method} | {len(method_rows)} | {updates} | {fmt(train)} | "
+            f"{fmt(checkpoint)} | {fmt(validation)} |"
         )
-    markdown.extend([
-        "",
-        "## Public результаты по уровням",
-        "",
-        "| Метод | Updates | " + " | ".join(EVAL_LEVELS) + " |",
-        "|---|---:|" + "---:|" * len(EVAL_LEVELS),
-    ])
-    for (method, updates), method_rows in sorted(groups.items()):
-        values = []
-        for level in EVAL_LEVELS:
-            level_values = [r[level] for r in method_rows if r[level] is not None]
-            mean, std = mean_std(level_values)
-            values.append(f"{mean:.3f} ± {std:.3f}")
-        markdown.append(f"| {method} | {updates} | " + " | ".join(values) + " |")
+
+    checkpoint_groups = [
+        (key, value)
+        for key, value in sorted(groups.items())
+        if any(r["checkpoint_solve_rate"] is not None for r in value)
+    ]
+    if checkpoint_groups:
+        markdown.extend([
+            "",
+            "## Отдельная оценка checkpoint по уровням",
+            "",
+            "| Метод | Seeds | " + " | ".join(EVAL_LEVELS) + " |",
+            "|---|---:|" + "---:|" * len(EVAL_LEVELS),
+        ])
+        for (method, _), method_rows in checkpoint_groups:
+            values = []
+            for level in EVAL_LEVELS:
+                level_values = [
+                    r[f"checkpoint_{level}"]
+                    for r in method_rows
+                    if r[f"checkpoint_{level}"] is not None
+                ]
+                values.append(fmt(level_values, digits=3))
+            markdown.append(
+                f"| {method} | {len(method_rows)} | " + " | ".join(values) + " |"
+            )
+
     output_md = args.results_dir / "SUMMARY.md"
     output_md.write_text("\n".join(markdown) + "\n")
     print(output_csv)
