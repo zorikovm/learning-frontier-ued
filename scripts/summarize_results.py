@@ -29,9 +29,8 @@ METHOD_ALIASES = {
 }
 
 
-def load_latest(path: Path):
-    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
-    return rows[-1] if rows else None
+def load_rows(path: Path):
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
 def mean_std(values):
@@ -61,9 +60,10 @@ def main():
 
     rows = []
     for metrics_path in sorted(args.results_dir.glob("*/[0-9]*/metrics.jsonl")):
-        metric = load_latest(metrics_path)
-        if metric is None:
+        metric_rows = load_rows(metrics_path)
+        if not metric_rows:
             continue
+        metric = metric_rows[-1]
         run_name = metrics_path.parents[1].name
         if run_name.startswith("smoke_"):
             continue
@@ -77,7 +77,9 @@ def main():
             "seed": seed,
             "num_updates": metric.get("num_updates"),
             "num_env_steps": metric.get("num_env_steps"),
-            "wall_clock_seconds": metric.get("wall_clock_block_seconds"),
+            "wall_clock_seconds": sum(
+                row.get("wall_clock_block_seconds", 0.0) for row in metric_rows
+            ),
             "solve_rate": metric.get("solve_rate/mean"),
             "checkpoint_solve_rate": evaluation.get("solve_rate_mean"),
             "validation_solve_rate": metric.get("validation/solve_rate_mean"),
@@ -110,8 +112,8 @@ def main():
 
     has_full = any(updates == 30000 for _, updates in groups)
     intro = (
-        "Полные результаты на 30000 updates приведены вместе с короткими запусками, "
-        "которые использовались только для проверки гипотез."
+        "Полные результаты приведены вместе с короткими запусками, "
+        "на которых отсеивались слабые идеи."
         if has_full
         else "Доступны только короткие запуски для проверки гипотез."
     )
@@ -120,7 +122,7 @@ def main():
         "",
         intro,
         "",
-        "| Метод | Seeds | Updates | Во время обучения | Отдельная оценка checkpoint | Проверочная выборка |",
+        "| Метод | Запуски | Обновления | Во время обучения | Отдельная оценка контрольной точки | Проверочная выборка |",
         "|---|---:|---:|---:|---:|---:|",
     ]
     for (method, updates), method_rows in sorted(groups.items()):
@@ -140,7 +142,7 @@ def main():
     if checkpoint_groups:
         markdown.extend([
             "",
-            "## Отдельная оценка checkpoint по уровням",
+            "## Отдельная оценка контрольной точки по уровням",
             "",
             "| Метод | Seeds | " + " | ".join(EVAL_LEVELS) + " |",
             "|---|---:|" + "---:|" * len(EVAL_LEVELS),
