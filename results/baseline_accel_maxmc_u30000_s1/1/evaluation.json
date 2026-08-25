@@ -1,0 +1,24 @@
+{
+  "checkpoint_step": 30000,
+  "solve_rate_mean": 0.8125,
+  "solve_rate_per_level": {
+    "SixteenRooms": 1.0,
+    "SixteenRooms2": 1.0,
+    "Labyrinth": 0.3,
+    "LabyrinthFlipped": 0.8,
+    "Labyrinth2": 1.0,
+    "StandardMaze": 1.0,
+    "StandardMaze2": 0.6,
+    "StandardMaze3": 0.8
+  },
+  "return_per_level": {
+    "SixteenRooms": 0.6601600050926208,
+    "SixteenRooms2": 0.7213600277900696,
+    "Labyrinth": 0.09731999039649963,
+    "LabyrinthFlipped": 0.4140799641609192,
+    "Labyrinth2": 0.357759952545166,
+    "StandardMaze": 0.519760012626648,
+    "StandardMaze2": 0.14711996912956238,
+    "StandardMaze3": 0.4810400605201721
+  }
+}
