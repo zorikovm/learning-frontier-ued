@@ -12,12 +12,12 @@ PINNED_REPOSITORY = "DramaCow/jaxued"
 PINNED_COMMIT = "0f8f1284677375b889e4f13a32c9617cd009f8c4"
 EXAMPLE = "examples/maze_plr.py"
 
-# SHA256 of ast.dump(..., include_attributes=False) after stripping docstrings.
+# SHA256 of a version-independent normalized AST representation.
 # These hashes were taken from examples/maze_plr.py at PINNED_COMMIT.
 LOCKED_NODE_HASHES = {
-    "ActorCritic": "6bf79fa6ef34eabd38684fda55afd145bab433ebe9427b3e33a9794e88a74109",
-    "compute_gae": "064113323a6534d4e5e40483f5c54e471f1f238a246056f073c3495f99568406",
-    "update_actor_critic_rnn": "3e2c317a391f0d2a1daf3dd784f047a3bb6e76a022c9bb6900b338d11a44f37a",
+    "ActorCritic": "dca59ce11f0a44aa259a835a4016f7442d6d69c8677afc2a01f28ce2ddb528a6",
+    "compute_gae": "c48fb770eb1a58d7e7d42e58868f040e4cca897bc3f515d9cf229d6330aceb9c",
+    "update_actor_critic_rnn": "f8f92c0296e23bffdcbe440771b6b2923de00724247f8e2e8147e515605545f0",
 }
 LOCKED_DEFAULTS = {
     "--lr": 1e-4,
@@ -56,6 +56,23 @@ class StripDocstrings(ast.NodeTransformer):
         return self._visit_body_node(node)
 
 
+def canonical_ast(value):
+    """Convert AST to a stable tuple, ignoring fields added by newer Python versions."""
+    if isinstance(value, ast.AST):
+        fields = []
+        for name, child in ast.iter_fields(value):
+            # Python 3.12 added type_params to FunctionDef/ClassDef. It is empty
+            # for this Python 3.11 code, so ignoring it makes the representation
+            # identical across supported Python versions.
+            if name == "type_params":
+                continue
+            fields.append((name, canonical_ast(child)))
+        return (value.__class__.__name__, tuple(fields))
+    if isinstance(value, list):
+        return tuple(canonical_ast(item) for item in value)
+    return value
+
+
 def node_hashes(source):
     tree = ast.parse(source)
     hashes = {}
@@ -65,7 +82,7 @@ def node_hashes(source):
         if node.name not in LOCKED_NODE_HASHES:
             continue
         normalized = StripDocstrings().visit(copy.deepcopy(node))
-        dumped = ast.dump(normalized, include_attributes=False)
+        dumped = repr(canonical_ast(normalized))
         hashes[node.name] = hashlib.sha256(dumped.encode()).hexdigest()
     return hashes
 
